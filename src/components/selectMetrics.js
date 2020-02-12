@@ -1,10 +1,10 @@
 import React from 'react';
-import { MenuItem, TextField } from '@material-ui/core';
+import { MenuItem, TextField, Card, CardContent, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useSelector, useDispatch } from 'react-redux';
 import { setMetric } from '../redux/action';
 
-const metrics = [
+const metricsName = [
     "waterTemp",
     "casingPressure",
     "injValveOpen",
@@ -13,19 +13,27 @@ const metrics = [
     "tubingPressure",
 ];
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles({
     root: {
-        '& .MuiTextField-root': {
-            margin: theme.spacing(1),
-            width: 200,
-        },
+      minWidth: 275,
+      float: "left"
     },
-}));
+    
+    title: {
+      fontSize: 14,
+    },
+    
+  });
 
 const SelectMetrics = (props) => {
 
     const classes = useStyles();
-    // const [metric, setMetric] = React.useState('');
+
+    let initialState = {
+        metrics:[]
+    }
+    
+    const [state, setState] = React.useState(initialState);
     
     let metric = useSelector((state)=> state.metric);
     
@@ -33,7 +41,15 @@ const SelectMetrics = (props) => {
 
     const handleChange = event => {
         dispatch(setMetric(event.target.value))
-        console.log(metric)
+        let metrics = state.metrics;
+        metrics.push(event.target.value);
+        setState({metrics})
+    };
+    const handleDelete = event => {
+        dispatch(setMetric(event.target.value))
+        let metrics = state.metrics;
+        metrics.push(event.target.value);
+        setState({metrics})
     };
     return (
         <div>
@@ -47,12 +63,22 @@ const SelectMetrics = (props) => {
                 variant="outlined"
                 style={{float:"right",margin:"20px"}}
             >
-                {metrics.map(option => (
+                {metricsName.map(option => (
                     <MenuItem key={option} value={option}>
                         {option}
                     </MenuItem>
                 ))}
             </TextField>
+            {state.metrics.map(metric=>(
+                <Card key={metric} className={classes.root}>
+                    <CardContent>
+                        <Typography className={classes.title}>
+                            {metric}
+                        </Typography>
+                    </CardContent>
+                       
+                </Card>
+            ))}
         </div>
 
     );

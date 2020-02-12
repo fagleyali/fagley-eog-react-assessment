@@ -4,6 +4,7 @@ import action from './action';
 
 const initialState = {
     metric:"",
+   
     measurements: []
 }
 
@@ -15,6 +16,7 @@ const initialState = {
                 metric: content
             }
         }
+        
         case 'SET_MEASUREMENTS':{
             const { contents } = action.payload;
             return {
