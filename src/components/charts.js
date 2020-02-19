@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   Provider,
@@ -11,7 +11,6 @@ import {
 } from "urql";
 import { SubscriptionClient } from "subscriptions-transport-ws";
 import { useSelector } from "react-redux";
-import { ModalManager } from "@material-ui/core";
 
 const client = createClient({
   url: "https://react.eogresources.com/graphql",
@@ -44,16 +43,16 @@ const query = `
   }
   `;
 
-// const subscription = `
-// subscription {
-//   newMeasurement {
-//     metric
-//     at
-//     value
-//     unit
-//   }
-// }
-// `
+const subscription = `
+subscription {
+  newMeasurement {
+    metric
+    at
+    value
+    unit
+  }
+}
+`;
 
 export default () => {
   return (
@@ -63,6 +62,7 @@ export default () => {
   );
 };
 
+let subData = [];
 const Charts = props => {
   let metric = useSelector(state => state.metric);
 
@@ -73,6 +73,11 @@ const Charts = props => {
     if (metName === "flareTemp") return "brown";
     if (metName === "oilTemp") return "red";
     if (metName === "tubingPressure") return "purple";
+  };
+  const tickCounter = unit => {
+    if (unit === "PSI") return "10";
+    if (unit === "%") return "11";
+    if (unit === "F") return "15";
   };
 
   const initialState = {
@@ -91,32 +96,27 @@ const Charts = props => {
   // let subResult = useSubscription({
   //   query: subscription
   // })
+  // const { fetching, data, error } = subResult;
+  // const handleSub = () => {
 
-  // if( subResult[0].data){
+  //   if( subResult[0].data){
 
-  //   console.log(subResult[0].data.newMeasurement )
+  //     subData.push(subResult[0].data.newMeasurement);
+  //     setState({results: [...state.results, ...subData]});
+  //     console.log(state.results);
+  //   }
   // }
+
   const { fetching, data, error } = result;
-  const dt = new Date();
-  const timeRange = arr => {
-    if (!arr && arr.length > 0) return;
-    let timeArr = [];
-    if (arr.length > timeArr.length) {
-      timeArr = arr;
-    }
-    console.log(timeArr);
-    return timeArr;
-  };
 
   useEffect(() => {
     if (!data) return;
     const { getMeasurements } = data;
     let startTime = Date.now() - 30 * 60 * 1000;
     let renderData = getMeasurements.filter(e => e.at > startTime);
-    let timeData = timeRange(renderData);
     setState({ results: [...state.results, renderData] });
     console.log(state.results);
-  }, [data]);
+  });
 
   return (
     <div>
@@ -156,11 +156,12 @@ const Charts = props => {
             <YAxis
               label={{
                 value: result[0].unit,
-                angle: -120,
+                angle: -150,
                 position: "insideTopLeft"
               }}
               allowDataOverflow
               yAxisId={result[0].unit}
+              tickCount={tickCounter(result[0].unit)}
               dataKey="value"
             />
           ) : null
