@@ -43,16 +43,16 @@ const query = `
   }
   `;
 
-// const subscription = `
-// subscription {
-//   newMeasurement {
-//     metric
-//     at
-//     value
-//     unit
-//   }
-// }
-// `;
+const subscription = `
+subscription {
+  newMeasurement {
+    metric
+    at
+    value
+    unit
+  }
+}
+`;
 
 export default () => {
   return (
@@ -116,7 +116,7 @@ const Charts = props => {
     let renderData = getMeasurements.filter(e => e.at > startTime);
     setState({ results: [...state.results, renderData] });
    
-  },[]);
+  },[data]);
 
   return (
     <div>
