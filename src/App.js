@@ -1,13 +1,14 @@
-import React, {useState} from 'react';
-import SelectMetrics from './components/selectMetrics';
-import Charts from './components/charts';
-import './App.css';
+import React, { useState } from "react";
+import SelectMetrics from "./components/selectMetrics";
+import Charts from "./components/charts";
+
+import "./App.css";
 
 function App() {
   const initialState = {
-    metricName: "waterTemp",
+    metricName: "waterTemp"
   };
-  const [state, setState] = useState(initialState)
+  const [state, setState] = useState(initialState);
   return (
     <div className="App">
       <h1>EOG REACT ASSESSMENT</h1>
