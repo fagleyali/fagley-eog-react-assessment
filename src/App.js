@@ -2,7 +2,14 @@ import React, { useState } from "react";
 import SelectMetrics from "./components/selectMetrics";
 import Charts from "./components/charts";
 
+
+
 import "./App.css";
+import { Subscription } from "urql";
+
+
+
+
 
 function App() {
   const initialState = {
@@ -14,6 +21,7 @@ function App() {
       <h1>EOG REACT ASSESSMENT</h1>
       <SelectMetrics />
       <Charts metricName={state.metricName} />
+      
     </div>
   );
 }

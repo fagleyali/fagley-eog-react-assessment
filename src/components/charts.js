@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
+import React from "react";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import {
   Provider,
   createClient,
@@ -9,27 +9,64 @@ import {
   subscriptionExchange,
   useSubscription
 } from "urql";
-import { SubscriptionClient } from "subscriptions-transport-ws";
+
 import { useSelector } from "react-redux";
+import { cacheExchange } from '@urql/exchange-graphcache';
+import { SubscriptionClient } from "subscriptions-transport-ws";
+
+
+import uuid from 'uuid';
+
+
+export const subQuery = `
+subscription {
+  newMeasurement {
+    metric
+    at
+    value
+    unit
+  }
+}
+`;  
+
+export const subClient = new SubscriptionClient(
+    "wss://react.eogresources.com/graphql",
+    {
+      reconnect: true
+    }
+  );
+
+  // const cache = cacheExchange({
+  //   keys: uuid(),
+  //   updates: {
+  //     Subscription: {
+  //       newMeasurement: ({newMeasurement}, _args, cache) => {
+  //         const variables = { first: 100, skip: 0, orderBy: 'at_DESC'}
+  //         cache.updateQuery({query: query, variables}, data => {
+  //           if(data !== null) {
+  //             data.getMeasurements.unshift(newMeasurement)
+  //             console.log(data)
+  //             return data;
+  //           }else {
+  //             return null
+  //           }
+  //         })
+  //       }
+  //     }
+  //   }
+  // })
 
 const client = createClient({
   url: "https://react.eogresources.com/graphql",
   exchanges: [
     dedupExchange,
-
+    // cache,
     fetchExchange,
     subscriptionExchange({
-      forwardSubscription: operation => subscriptionClient.request(operation)
+      forwardSubscription: operation => subClient.request(operation)
     })
   ]
 });
-
-const subscriptionClient = new SubscriptionClient(
-  "wss://react.eogresources.com/graphql",
-  {
-    reconnect: true
-  }
-);
 
 const query = `
   query($input: MeasurementQuery!) {
@@ -43,16 +80,7 @@ const query = `
   }
   `;
 
-const subscription = `
-subscription {
-  newMeasurement {
-    metric
-    at
-    value
-    unit
-  }
-}
-`;
+  
 
 export default () => {
   return (
@@ -61,11 +89,47 @@ export default () => {
     </Provider>
   );
 };
+let renderData=[]
+let xTicks = []
 
-let subData = [];
 const Charts = props => {
   let metric = useSelector(state => state.metric);
+  let input = { metricName: metric };
 
+  // const [subResult] = 
+  // useSubscription({
+  //   query: subQuery,
+    
+  // });
+  
+  let [result] = useQuery({
+    query,
+    variables: {
+      input
+    }
+  });
+
+  // if (!subResult.data) return null
+  // let newData = subResult.data.newMeasurement
+  // console.log(newData)
+  
+  const { fetching, data, error } = result;
+  if (fetching) return <div>Fetching</div>
+  if (error) return <div>Error</div>
+  if (!data) return;
+    const { getMeasurements } = data;
+    // if(getMeasurements.length > 0 && getMeasurements[0].metric === newData.metric){
+    //   // console.log(getMeasurements[0].metric)
+    //   getMeasurements.unshift(newData)
+    // }
+    // console.log(getMeasurements[0])
+    if(getMeasurements && getMeasurements.length > 0){
+
+      let startTime = Date.now() - (30 * 60 * 1000);
+      renderData.unshift(getMeasurements.filter(e => e.at > startTime));
+      
+    }
+    
   const metColor = metName => {
     if (metName === "waterTemp") return "magenta";
     if (metName === "casingPressure") return "blue";
@@ -80,79 +144,54 @@ const Charts = props => {
     if (unit === "F") return "15";
   };
 
-  const initialState = {
-    results: []
-  };
-  const [state, setState] = useState(initialState);
-  let input = { metricName: metric };
-
-  let [result] = useQuery({
-    query,
-    variables: {
-      input
-    }
-  });
-
-  // let subResult = useSubscription({
-  //   query: subscription
-  // })
-  // const { fetching, data, error } = subResult;
-  // const handleSub = () => {
-
-  //   if( subResult[0].data){
-
-  //     subData.push(subResult[0].data.newMeasurement);
-  //     setState({results: [...state.results, ...subData]});
-  //     console.log(state.results);
-  //   }
-  // }
-
-  const { fetching, data, error } = result;
-
-  useEffect(() => {
-    if (!data) return;
-    const { getMeasurements } = data;
-    let startTime = Date.now() - 30 * 60 * 1000;
-    let renderData = getMeasurements.filter(e => e.at > startTime);
-    setState({ results: [...state.results, renderData] });
-   
-  },[data]);
-
+ const formatXAxis = (tickItem) => {
+  return new Date(tickItem).getHours() + ':' + new Date(tickItem).getMinutes()
+ } 
+  
   return (
     <div>
+     
       <LineChart
         width={1200}
         height={600}
-        data={state.results}
+        data={ renderData }
+        
         margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
       >
-        {state.results.map(result =>
+        {renderData.map(result =>
           result && result.length > 0 ? (
+            
             <Line
               type="monotone"
               yAxisId={result[0].unit}
               data={result}
               dataKey="value"
               stroke={metColor(result[0].metric)}
-              key={result[0].metric}
+              key={uuid()}
               dot={false}
             />
           ) : null
-        )}
+        )} 
         <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-
+        <Tooltip />
         <XAxis
           allowDataOverflow
           type="number"
-          domain={[Date.now() - 30 * 10 * 1000, Date.now()]}
-          key={new Date()}
+          // domain={[Date.now() - 30 * 10 * 1000, Date.now()]}
+          domain={['dataMin', 'dataMax']}
+          key={uuid()}
           tickCount="6"
-          dataKey="at"
+          dataKey='at'
+          tickFormatter={formatXAxis}
           padding={{ left: 30, right: 30 }}
+          
+          // ticks = {[1582514389831, 1582514699697, 1582515011105, 1582515320537, 1582515629314, 1582515939090   ]}
         />
 
-        {state.results.map(result =>
+        {renderData.map(result =>
           result && result.length > 0 ? (
+            
+          
             <YAxis
               label={{
                 value: result[0].unit,
@@ -163,10 +202,13 @@ const Charts = props => {
               yAxisId={result[0].unit}
               tickCount={tickCounter(result[0].unit)}
               dataKey="value"
+              key={uuid()}
             />
-          ) : null
-        )}
+            ) : null
+        )} 
+       
       </LineChart>
+      
     </div>
   );
 };

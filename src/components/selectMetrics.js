@@ -44,6 +44,7 @@ const SelectMetrics = props => {
   const dispatch = useDispatch();
 
   const handleChange = event => {
+    event.preventDefault();
     dispatch(setMetric(event.target.value));
     let metrics = state.metrics;
     metrics.push(event.target.value);
